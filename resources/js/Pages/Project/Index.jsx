@@ -1,5 +1,8 @@
+import Pagination from "@/Components/Pagination";
+import { PROJECT_STATUS_CLASS_MAP, PROJECT_STATUS_TEXT_MAP } from "@/constants";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head } from "@inertiajs/react";
+import { Head, Link } from "@inertiajs/react";
+
 
 export default function index({ auth, projects }) {
   return (
@@ -82,9 +85,10 @@ export default function index({ auth, projects }) {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900 dark:text-gray-100">
-                                                {project.status}
-                                            </div>
+                                            <span 
+                                                className={`px-2 py-1 rounded text-white ${PROJECT_STATUS_CLASS_MAP[project.status]}`}>
+                                                {PROJECT_STATUS_TEXT_MAP[project.status]}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-900 dark:text-gray-100">
@@ -103,14 +107,24 @@ export default function index({ auth, projects }) {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-900 dark:text-gray-100">
-                                                
+                                                <Link href={route('project.edit', project.id)}
+                                                    className="p-2 text-indigo-600 hover:text-indigo-900">
+                                                        Edit
+                                                </Link>
+                                                <Link 
+                                                    href={route('project.destroy', project.id)}
+                                                    method="delete"
+                                                    as="button"
+                                                    className="text-red-600 hover:text-red-900">
+                                                    Delete
+                                                </Link>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                        
+                        <Pagination links={projects.meta.links} />
                     </div>
                 </div>
             </div>
