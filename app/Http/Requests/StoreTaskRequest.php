@@ -11,7 +11,7 @@ class StoreTaskRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true; // Authorization is handled by middleware
     }
 
     /**
@@ -22,7 +22,22 @@ class StoreTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'project_id' => 'required|exists:projects,id',
+            'assigned_user_id' => 'required|exists:users,id',
+            'due_date' => 'required|date|after_or_equal:today',
+            'status' => 'required|in:pending,in_progress,completed',
+            'priority' => 'required|in:low,medium,high',
+        ];
+    }
+    
+    public function messages()
+    {
+        return [
+            'due_date.after_or_equal' => 'The due date must be today or in the future.',
+            'project_id.required' => 'Please select a project.',
+            'assigned_user_id.required' => 'Please assign the task to a user.',
         ];
     }
 }

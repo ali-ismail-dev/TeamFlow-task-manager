@@ -218,9 +218,12 @@ export default function index({ auth, projects, queryParams = null }) {
                                         </td>
                                     
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900 dark:text-gray-100">
+                                            <Link 
+                                                href={route('task.index', { project_id: project.id })}
+                                                className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                            >
                                                 {project.name}
-                                            </div>
+                                            </Link>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span 

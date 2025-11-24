@@ -3,25 +3,66 @@
 namespace App\Http\Controllers;
 
 use App\Models\Task;
+use App\Models\Project;
+use App\Models\User;
+use App\Http\Resources\TaskResource;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class TaskController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+
+
+public function index(Request $request)
+{
+    $query = Task::with(['project', 'assignedUser', 'createdBy', 'updatedBy']);
+
+    // Search by name
+    if ($request->has('name') && !empty($request->name)) {
+        $query->where('name', 'like', '%' . $request->name . '%');
     }
+
+    // Filter by project
+    if ($request->has('project_id') && !empty($request->project_id)) {
+        $query->where('project_id', $request->project_id);
+    }
+
+    // Other filters
+    if ($request->has('status') && !empty($request->status)) {
+        $query->where('status', $request->status);
+    }
+
+    if ($request->has('priority') && !empty($request->priority)) {
+        $query->where('priority', $request->priority);
+    }
+
+    // Sorting
+    $sortField = $request->input('sortField', 'created_at');
+    $sortDirection = $request->input('sortDirections', 'desc');
+    $query->orderBy($sortField, $sortDirection);
+
+    $tasks = $query->paginate(10);
+    $projects = Project::select('id', 'name')->get();
+
+    return Inertia::render('Task/Index', [
+        'tasks' => TaskResource::collection($tasks),
+        'projects' => $projects,
+        'queryParams' => $request->query() ?: null,
+    ]);
+}
 
     /**
      * Show the form for creating a new resource.
      */
     public function create()
     {
-        //
+        return Inertia::render('Task/Create', [
+            'projects' => Project::select(['id', 'name'])->get(),
+            'users' => User::select(['id', 'name'])->get(),
+        ]);
     }
 
     /**
@@ -29,7 +70,15 @@ class TaskController extends Controller
      */
     public function store(StoreTaskRequest $request)
     {
-        //
+        $data = $request->validated();
+        $data['created_by'] = Auth::id();
+        $data['updated_by'] = Auth::id();
+
+        $task = Task::create($data);
+
+        return redirect()
+            ->route('task.index')
+            ->with('success', 'Task created successfully.');
     }
 
     /**
@@ -37,7 +86,11 @@ class TaskController extends Controller
      */
     public function show(Task $task)
     {
-        //
+        $task->load(['project', 'assignedUser', 'createdBy', 'updatedBy']);
+        
+        return Inertia::render('Task/Show', [
+            'task' => new TaskResource($task)
+        ]);
     }
 
     /**
@@ -45,7 +98,13 @@ class TaskController extends Controller
      */
     public function edit(Task $task)
     {
-        //
+        $task->load(['project', 'assignedUser']);
+        
+        return Inertia::render('Task/Edit', [
+            'task' => new TaskResource($task),
+            'projects' => Project::select(['id', 'name'])->get(),
+            'users' => User::select(['id', 'name'])->get(),
+        ]);
     }
 
     /**
@@ -53,7 +112,14 @@ class TaskController extends Controller
      */
     public function update(UpdateTaskRequest $request, Task $task)
     {
-        //
+        $data = $request->validated();
+        $data['updated_by'] = Auth::id();
+
+        $task->update($data);
+
+        return redirect()
+            ->route('task.index')
+            ->with('success', 'Task updated successfully.');
     }
 
     /**
@@ -61,6 +127,10 @@ class TaskController extends Controller
      */
     public function destroy(Task $task)
     {
-        //
+        $task->delete();
+
+        return redirect()
+            ->route('task.index')
+            ->with('success', 'Task deleted successfully.');
     }
 }
