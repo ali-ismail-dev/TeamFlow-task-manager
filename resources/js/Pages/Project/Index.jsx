@@ -1,10 +1,70 @@
 import Pagination from "@/Components/Pagination";
+import SelectInput from "@/Components/SelectInput";
+import TextInput from "@/Components/TextInput";
 import { PROJECT_STATUS_CLASS_MAP, PROJECT_STATUS_TEXT_MAP } from "@/constants";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 
 
-export default function index({ auth, projects }) {
+export default function index({ auth, projects, queryParams = null }) {
+    queryParams = queryParams || {};
+    const searchFieldChange = (name, value) => {
+        if (value) {
+            queryParams[name] = value;
+        } else {
+            delete queryParams[name];
+        }
+        router.get(route("project.index"), queryParams, { preserveState: true });
+    }
+
+    const onKeyPress = (name, e) => {
+        if (e.key === 'Enter') {
+            searchFieldChange(name, e.target.value);
+        }
+    }
+
+    const sortChanged = (name) => {
+        if (name === queryParams.sortField) {
+            // Cycle through: asc → desc → none
+            if (queryParams.sortDirections === 'asc') {
+                queryParams.sortDirections = 'desc';
+            } else if (queryParams.sortDirections === 'desc') {
+                // Remove sorting for this field
+                delete queryParams.sortField;
+                delete queryParams.sortDirections;
+            } else {
+                // This case shouldn't happen, but just in case
+                queryParams.sortDirections = 'asc';
+            }
+        } else {
+            // New field, set to asc
+            queryParams.sortField = name;
+            queryParams.sortDirections = 'asc';
+        }
+        router.get(route("project.index"), queryParams, { preserveState: true });
+    };
+
+    // Helper function to render sort indicator
+    const SortIndicator = ({ field }) => {
+        if (queryParams.sortField !== field) return null;
+        if (!queryParams.sortDirections) return null; // No sort direction = no indicator
+        
+        return (
+            <span className="ml-1">
+                {queryParams.sortDirections === 'asc' ? '▲' : '▼'}
+            </span>
+        );
+    };
+    
+    // Helper function to get sort header class
+    const getSortHeaderClass = (field) => {
+        return `px-6 py-3 text-left text-xs font-medium uppercase tracking-wider 
+            cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700
+            ${queryParams.sortField === field 
+                ? 'text-indigo-600 dark:text-indigo-400' 
+                : 'text-gray-500 dark:text-gray-400'}`;
+    };
+
   return (
     <AuthenticatedLayout
       user={auth.user}
@@ -18,7 +78,7 @@ export default function index({ auth, projects }) {
 
         <div className="py-12">
             <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800">
+                <div className="overflow-visible bg-white shadow-sm sm:rounded-lg dark:bg-gray-800">
                     <div className="p-6 text-gray-900 dark:text-gray-100">
                        
 
@@ -27,34 +87,54 @@ export default function index({ auth, projects }) {
                                 <tr>
                                     <th
                                         scope="col"
-                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                        className={getSortHeaderClass('id')}
+                                        onClick={() => sortChanged('id')}
                                     >
-                                        ID
+                                        <div className="flex items-center">
+                                            ID
+                                            <SortIndicator field="id" />
+                                        </div>
                                     </th>
                                   
                                     <th
                                         scope="col"
-                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                        className={getSortHeaderClass('name')}
+                                        onClick={() => sortChanged('name')}
                                     >
-                                        Projects
+                                        <div className="flex items-center">
+                                            Projects
+                                            <SortIndicator field="name" />
+                                        </div>
                                     </th>
                                     <th
                                         scope="col"
-                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                        className={getSortHeaderClass('status')}
+                                        onClick={() => sortChanged('status')}
                                     >
-                                        Status
+                                        <div className="flex items-center">
+                                            Status
+                                            <SortIndicator field="status" />
+                                        </div>
                                     </th>
                                     <th
                                         scope="col"
-                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                        className={getSortHeaderClass('created_at')}
+                                        onClick={() => sortChanged('created_at')}
                                     >
-                                        Create Date
+                                        <div className="flex items-center">
+                                            Create Date
+                                            <SortIndicator field="created_at" />
+                                        </div>
                                     </th>
                                     <th
                                         scope="col"
-                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                        className={getSortHeaderClass('due_date')}
+                                        onClick={() => sortChanged('due_date')}
                                     >
-                                        Due Date
+                                        <div className="flex items-center">
+                                            Due Date
+                                            <SortIndicator field="due_date" />
+                                        </div>
                                     </th>
                                     <th
                                         scope="col"
@@ -68,6 +148,64 @@ export default function index({ auth, projects }) {
                                     >
                                         Action
                                     </th>
+                                </tr>
+                            </thead>
+                            <thead className="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                    ></th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                    >
+                                      <TextInput 
+                                            className="w-full" 
+                                            placeholder="Project Name"
+                                            defaultValue={queryParams.name || ''}
+                                            onChange={e => searchFieldChange('name', e.target.value)}
+                                            onBlur={e => searchFieldChange('name', e.target.value)}
+                                            onKeyPress={e => onKeyPress('name', e)}
+                                            />  
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                    >
+                                        <div className="relative">
+                                            <SelectInput 
+                                                className="w-full"
+                                                value={queryParams.status || ''}
+
+                                                onChange={e => {
+                                                    console.log('Selected:', e.target.value);
+                                                    searchFieldChange('status', e.target.value);
+                                                }}
+                                            >
+                                                <option value="">All</option>
+                                                <option value="pending">Pending</option>
+                                                <option value="in_progress">In Progress</option>
+                                                <option value="completed">Completed</option>
+                                            </SelectInput>
+                                        </div>
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                    ></th>
+                                     <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                    ></th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                    ></th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                                    ></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
