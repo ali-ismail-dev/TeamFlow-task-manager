@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Http\Requests\StoreProjectRequest;
 use App\Http\Requests\UpdateProjectRequest;
 use App\Http\Resources\ProjectResource;
+use Illuminate\Support\Facades\Auth;
 
 class ProjectController extends Controller
 {
@@ -31,6 +32,7 @@ class ProjectController extends Controller
         return inertia('Project/Index', [
             'projects' => ProjectResource::collection($projects),
             'queryParams' => request()->query() ?: null,
+            'success' => session('success')
         ]);
     }
 
@@ -47,7 +49,17 @@ class ProjectController extends Controller
      */
     public function store(StoreProjectRequest $request)
     {
-        //
+        $project = new Project();
+        $project->name = $request->name;
+        $project->description = $request->description;
+        $project->due_date = $request->due_date;
+        $project->status = 'pending'; // Default status
+        $project->created_by = Auth::id();
+        $project->updated_by = Auth::id();
+        $project->save();
+
+        return redirect()->route('project.index')
+            ->with('success', 'Project created successfully!');
     }
 
     /**
@@ -63,7 +75,20 @@ class ProjectController extends Controller
      */
     public function edit(Project $project)
     {
-        //
+        // Eager load the relationships to avoid N+1 queries
+        $project->load(['createdBy', 'updatedBy']);
+        
+        // Convert due_date to Carbon instance if it's a string
+        if ($project->due_date && is_string($project->due_date)) {
+            $project->due_date = \Carbon\Carbon::parse($project->due_date);
+        }
+        
+        // Format the due_date for the date input
+        $project->due_date = $project->due_date ? $project->due_date->format('Y-m-d') : null;
+        
+        return inertia('Project/Edit', [
+            'project' => $project
+        ]);
     }
 
     /**
@@ -71,7 +96,16 @@ class ProjectController extends Controller
      */
     public function update(UpdateProjectRequest $request, Project $project)
     {
-        //
+        $project->name = $request->name;
+        $project->description = $request->description;
+        $project->due_date = $request->due_date;
+        $project->status = $request->status;
+        $project->updated_by = Auth::id();
+        
+        $project->save();
+
+        return redirect()->route('project.index')
+            ->with('success', 'Project updated successfully!');
     }
 
     /**
@@ -79,6 +113,11 @@ class ProjectController extends Controller
      */
     public function destroy(Project $project)
     {
-        //
+        $name = $project->name;
+            $project->tasks()->delete();
+
+        $project->delete();
+        return redirect()->route('project.index')
+            ->with('success', 'Project ' . $name . ' deleted successfully!');
     }
 }
