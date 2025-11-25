@@ -1,97 +1,96 @@
-// resources/js/Pages/Project/Create.jsx
-import { Head, Link, useForm } from '@inertiajs/react';
+// resources/js/Pages/User/Create.jsx
+import React from 'react';
+import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import TextInput from '@/Components/TextInput';
-import InputLabel from '@/Components/InputLabel';
-import TextareaInput from '@/Components/TextareaInput';
-import InputError from '@/Components/InputError';
+import { Link } from '@inertiajs/react';
 
-export default function Create({ auth }) {
+
+export default function Create() {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
-        description: '',
-        due_date: '',
+        email: '',
+        password: '',
+        password_confirmation: ''
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('project.store'));
+        post(route('users.store'));
     };
 
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                        Create New Project
-                    </h2>
-                </div>
-            }
-        >
-            <Head title="Create Project" />
+        <AuthenticatedLayout>
+            <Head title="Create User" />
+
+          
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                        <form onSubmit={handleSubmit} className="p-6">
-                            <div className="grid grid-cols-1 gap-6">
-                                <div>
-                                    <InputLabel htmlFor="name" value="Project Name" />
-                                    <TextInput
-                                        id="name"
-                                        type="text"
-                                        name="name"
-                                        value={data.name}
-                                        className="mt-1 block w-full"
-                                        isFocused={true}
-                                        onChange={(e) => setData('name', e.target.value)}
-                                        required
-                                    />
-                                    <InputError message={errors.name} className="mt-2" />
-                                </div>
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                        <h2 className="text-2xl font-semibold text-gray-800 mb-6">Create New User</h2>
+                        
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div>
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+                                <input
+                                    type="text"
+                                    id="name"
+                                    value={data.name}
+                                    onChange={e => setData('name', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                                {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+                            </div>
 
-                                <div>
-                                    <InputLabel htmlFor="description" value="Description" />
-                                    <TextareaInput
-                                        id="description"
-                                        name="description"
-                                        value={data.description}
-                                        className="mt-1 block w-full"
-                                        onChange={(e) => setData('description', e.target.value)}
-                                        rows={4}
-                                    />
-                                    <InputError message={errors.description} className="mt-2" />
-                                </div>
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    value={data.email}
+                                    onChange={e => setData('email', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                            </div>
 
-                                <div>
-                                    <InputLabel htmlFor="due_date" value="Due Date" />
-                                    <TextInput
-                                        id="due_date"
-                                        type="date"
-                                        name="due_date"
-                                        value={data.due_date}
-                                        className="mt-1 block w-full"
-                                        onChange={(e) => setData('due_date', e.target.value)}
-                                    />
-                                    <InputError message={errors.due_date} className="mt-2" />
-                                </div>
+                            <div>
+                                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                                <input
+                                    type="password"
+                                    id="password"
+                                    value={data.password}
+                                    onChange={e => setData('password', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                                {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+                            </div>
 
-                                <div className="flex items-center justify-end gap-4">
-                                    <Link
-                                        href={route('project.index')}
-                                        className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded"
-                                    >
-                                        Cancel
-                                    </Link>
-                                    <button
-                                        type="submit"
-                                        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded"
-                                        disabled={processing}
-                                    >
-                                        {processing ? 'Creating...' : 'Create Project'}
-                                    </button>
-                                </div>
+                            <div>
+                                <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                                <input
+                                    type="password"
+                                    id="password_confirmation"
+                                    value={data.password_confirmation}
+                                    onChange={e => setData('password_confirmation', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-end space-x-4">
+                                <Link
+                                    href={route('users.index')}
+                                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </Link>
+                                <button
+                                    type="submit"
+                                    disabled={processing}
+                                    className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${processing ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                >
+                                    {processing ? 'Creating...' : 'Create User'}
+                                </button>
                             </div>
                         </form>
                     </div>

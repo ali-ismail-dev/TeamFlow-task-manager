@@ -1,117 +1,159 @@
-// resources/js/Pages/Project/Edit.jsx
-import { Head, Link, useForm } from '@inertiajs/react';
+// resources/js/Pages/User/Edit.jsx
+import React, { useEffect } from 'react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import TextInput from '@/Components/TextInput';
-import InputLabel from '@/Components/InputLabel';
-import TextareaInput from '@/Components/TextareaInput';
-import InputError from '@/Components/InputError';
-import SelectInput from '@/Components/SelectInput';
 
-export default function Edit({ auth, project }) {
-    const { data, setData, put, processing, errors, reset } = useForm({
-        name: project.name || '',
-        description: project.description || '',
-        due_date: project.due_date ? new Date(project.due_date).toISOString().split('T')[0] : '',
-        status: project.status || 'pending',
+export default function Edit({ user }) {
+    const { flash = {} } = usePage().props;
+    const { data, setData, put, processing, errors } = useForm({
+        name: user.name,
+        email: user.email,
+        password: '',
+        password_confirmation: ''
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        put(route('project.update', project.id));
+        put(route('users.update', user.id));
     };
 
+    useEffect(() => {
+        let timer;
+        
+        if (flash?.success || flash?.error) {
+            timer = setTimeout(() => {
+                // Clear the flash messages by navigating to the same page without flash
+                window.history.replaceState({}, '', window.location.pathname);
+                // Clear flash by dispatching an event that the parent can handle
+                window.dispatchEvent(new CustomEvent('clearFlash'));
+            }, 5000);
+        }
+
+        // Clear timer on unmount
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
+    }, [flash]);
+
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                        Edit Project "{project.name}"
-                    </h2>
+        <AuthenticatedLayout>
+            <Head title="Edit User" />
+            
+            {/* Success/Error Messages */}
+            {(flash?.success || flash?.error) && (
+                <div className={`fixed top-4 right-4 z-50 max-w-sm w-full ${flash?.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'} rounded-lg shadow-lg p-4 transition-all duration-300 ease-in-out`}>
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            {flash?.success ? (
+                                <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                            ) : (
+                                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                            )}
+                        </div>
+                        <div className="ml-3">
+                            <p className={`text-sm font-medium ${flash?.success ? 'text-green-800' : 'text-red-800'}`}>
+                                {flash?.success || flash?.error}
+                            </p>
+                        </div>
+                        <div className="ml-auto pl-3">
+                            <div className="-mx-1.5 -my-1.5">
+                                <button
+                                    type="button"
+                                    className={`inline-flex rounded-md p-1.5 ${flash?.success ? 'bg-green-50 text-green-500 hover:bg-green-100' : 'bg-red-50 text-red-500 hover:bg-red-100'} focus:outline-none focus:ring-2 focus:ring-offset-2 ${flash?.success ? 'focus:ring-green-600' : 'focus:ring-red-600'}`}
+                                    onClick={() => {
+                                        flash.success = null;
+                                        flash.error = null;
+                                        window.dispatchEvent(new Event('flash'));
+                                    }}
+                                >
+                                    <span className="sr-only">Dismiss</span>
+                                    <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            }
-        >
-            <Head title="Edit Project" />
+            )}
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                        <form onSubmit={handleSubmit} className="p-6">
-                            <div className="grid grid-cols-1 gap-6">
-                                <div>
-                                    <InputLabel htmlFor="name" value="Project Name" />
-                                    <TextInput
-                                        id="name"
-                                        type="text"
-                                        name="name"
-                                        value={data.name}
-                                        className="mt-1 block w-full"
-                                        isFocused={true}
-                                        onChange={(e) => setData('name', e.target.value)}
-                                        required
-                                    />
-                                    <InputError message={errors.name} className="mt-2" />
-                                </div>
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                        <h2 className="text-2xl font-semibold text-gray-800 mb-6">Edit User</h2>
+                        
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div>
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+                                <input
+                                    type="text"
+                                    id="name"
+                                    value={data.name}
+                                    onChange={e => setData('name', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                                {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+                            </div>
 
-                                <div>
-                                    <InputLabel htmlFor="description" value="Description" />
-                                    <TextareaInput
-                                        id="description"
-                                        name="description"
-                                        value={data.description}
-                                        className="mt-1 block w-full"
-                                        onChange={(e) => setData('description', e.target.value)}
-                                        rows={4}
-                                    />
-                                    <InputError message={errors.description} className="mt-2" />
-                                </div>
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    value={data.email}
+                                    onChange={e => setData('email', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                            </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <InputLabel htmlFor="due_date" value="Due Date" />
-                                        <TextInput
-                                            id="due_date"
-                                            type="date"
-                                            name="due_date"
-                                            value={data.due_date}
-                                            className="mt-1 block w-full"
-                                            onChange={(e) => setData('due_date', e.target.value)}
-                                        />
-                                        <InputError message={errors.due_date} className="mt-2" />
-                                    </div>
+                            <div>
+                                <label htmlFor="password" className="block text-sm font-medium text-gray-700">New Password (leave blank to keep current password)</label>
+                                <input
+                                    type="password"
+                                    id="password"
+                                    value={data.password}
+                                    onChange={e => setData('password', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                                {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+                            </div>
 
-                                    <div>
-                                        <InputLabel htmlFor="status" value="Status" />
-                                        <SelectInput
-                                            id="status"
-                                            name="status"
-                                            className="mt-1 block w-full"
-                                            value={data.status}
-                                            onChange={(e) => setData('status', e.target.value)}
-                                        >
-                                            <option value="">Select Status</option>
-                                            <option value="pending">Pending</option>
-                                            <option value="in_progress">In Progress</option>
-                                            <option value="completed">Completed</option>
-                                            <option value="cancelled">Cancelled</option>
-                                        </SelectInput>
-                                        <InputError message={errors.status} className="mt-2" />
-                                    </div>
-                                </div>
+                            <div>
+                                <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                                <input
+                                    type="password"
+                                    id="password_confirmation"
+                                    value={data.password_confirmation}
+                                    onChange={e => setData('password_confirmation', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                            </div>
 
-                                <div className="flex items-center justify-end gap-4">
+                            <div className="flex items-center justify-between">
+                                <Link
+                                    href={route('users.index')}
+                                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                >
+                                    Back to Users
+                                </Link>
+                                <div className="space-x-4">
                                     <Link
-                                        href={route('project.index')}
-                                        className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded"
+                                        href={route('users.index')}
+                                        className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                                     >
                                         Cancel
                                     </Link>
                                     <button
                                         type="submit"
-                                        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded"
                                         disabled={processing}
+                                        className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${processing ? 'opacity-75 cursor-not-allowed' : ''}`}
                                     >
-                                        {processing ? 'Updating...' : 'Update Project'}
+                                        {processing ? 'Updating...' : 'Update User'}
                                     </button>
                                 </div>
                             </div>
