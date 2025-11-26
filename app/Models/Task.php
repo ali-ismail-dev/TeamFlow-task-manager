@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Project;
+use App\Models\User;
+
 
 class Task extends Model
 {
@@ -20,7 +23,8 @@ class Task extends Model
         'updated_by',
         'due_date',
         'status',
-        'priority'
+        'priority',
+        'image_path'
     ];
 
     protected $dates = [

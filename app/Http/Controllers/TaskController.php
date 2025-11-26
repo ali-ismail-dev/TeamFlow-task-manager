@@ -14,45 +14,46 @@ use Inertia\Inertia;
 
 class TaskController extends Controller
 {
+    public function index(Request $request)
+    {
+        // single, consistent eager load using the relationship method names
+        $query = Task::with(['project', 'assignedUser', 'createdBy', 'updatedBy']);
 
+        // Search by name
+        if ($request->has('name') && !empty($request->name)) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
 
-public function index(Request $request)
-{
-    $query = Task::with(['project', 'assignedUser', 'createdBy', 'updatedBy']);
+        // Filter by project
+        if ($request->has('project_id') && !empty($request->project_id)) {
+            $query->where('project_id', $request->project_id);
+        }
 
-    // Search by name
-    if ($request->has('name') && !empty($request->name)) {
-        $query->where('name', 'like', '%' . $request->name . '%');
+        // Other filters
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('priority') && !empty($request->priority)) {
+            $query->where('priority', $request->priority);
+        }
+
+        // Sorting (defaults)
+        $sortField = $request->input('sortField', 'created_at');
+        $sortDirection = $request->input('sortDirections', 'desc');
+        $query->orderBy($sortField, $sortDirection);
+
+        // paginate (eager loads already applied)
+        $tasks = $query->paginate(10);
+
+        $projects = Project::select('id', 'name')->get();
+
+        return Inertia::render('Task/Index', [
+            'tasks' => TaskResource::collection($tasks),
+            'projects' => $projects,
+            'queryParams' => $request->query() ?: null,
+        ]);
     }
-
-    // Filter by project
-    if ($request->has('project_id') && !empty($request->project_id)) {
-        $query->where('project_id', $request->project_id);
-    }
-
-    // Other filters
-    if ($request->has('status') && !empty($request->status)) {
-        $query->where('status', $request->status);
-    }
-
-    if ($request->has('priority') && !empty($request->priority)) {
-        $query->where('priority', $request->priority);
-    }
-
-    // Sorting
-    $sortField = $request->input('sortField', 'created_at');
-    $sortDirection = $request->input('sortDirections', 'desc');
-    $query->orderBy($sortField, $sortDirection);
-
-    $tasks = $query->paginate(10);
-    $projects = Project::select('id', 'name')->get();
-
-    return Inertia::render('Task/Index', [
-        'tasks' => TaskResource::collection($tasks),
-        'projects' => $projects,
-        'queryParams' => $request->query() ?: null,
-    ]);
-}
 
     /**
      * Show the form for creating a new resource.
@@ -87,7 +88,7 @@ public function index(Request $request)
     public function show(Task $task)
     {
         $task->load(['project', 'assignedUser', 'createdBy', 'updatedBy']);
-        
+
         return Inertia::render('Task/Show', [
             'task' => new TaskResource($task)
         ]);
@@ -98,8 +99,9 @@ public function index(Request $request)
      */
     public function edit(Task $task)
     {
+        // use the same relation name as the model method (assignedUser)
         $task->load(['project', 'assignedUser']);
-        
+
         return Inertia::render('Task/Edit', [
             'task' => new TaskResource($task),
             'projects' => Project::select(['id', 'name'])->get(),
