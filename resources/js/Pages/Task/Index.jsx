@@ -3,13 +3,13 @@ import { useEffect } from 'react';
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import TextInput from "@/Components/TextInput";
 import SelectInput from "@/Components/SelectInput";
+import Pagination from "@/Components/Pagination";
 import { PROJECT_STATUS_CLASS_MAP, PROJECT_STATUS_TEXT_MAP } from "@/constants";
 import { TASK_PRIORITY_CLASS_MAP, TASK_PRIORITY_TEXT_MAP } from "@/constants";
 
 export default function Index({ auth, tasks, projects = [], queryParams = null }) {
     queryParams = queryParams || {};
 
-    // Handle project_id from URL when component mounts
     useEffect(() => {
         if (queryParams.project_id && !queryParams.project_id) {
             searchFieldChange('project_id', queryParams.project_id);
@@ -33,44 +33,62 @@ export default function Index({ auth, tasks, projects = [], queryParams = null }
 
     const sortChanged = (name) => {
         if (name === queryParams.sortField) {
-            // Cycle through: asc → desc → none
             if (queryParams.sortDirections === 'asc') {
                 queryParams.sortDirections = 'desc';
             } else if (queryParams.sortDirections === 'desc') {
-                // Remove sorting for this field
                 delete queryParams.sortField;
                 delete queryParams.sortDirections;
             } else {
-                // This case shouldn't happen, but just in case
                 queryParams.sortDirections = 'asc';
             }
         } else {
-            // New field, set to asc
             queryParams.sortField = name;
             queryParams.sortDirections = 'asc';
         }
         router.get(route("task.index"), queryParams, { preserveState: true });
     };
 
-    // Helper function to render sort indicator
     const SortIndicator = ({ field }) => {
         if (queryParams.sortField !== field) return null;
-        if (!queryParams.sortDirections) return null; // No sort direction = no indicator
+        if (!queryParams.sortDirections) return null;
         
         return (
-            <span className="ml-1">
+            <span className="ml-1 text-[#3B82F6]">
                 {queryParams.sortDirections === 'asc' ? '▲' : '▼'}
             </span>
         );
     };
     
-    // Helper function to get sort header class
     const getSortHeaderClass = (field) => {
-        return `px-6 py-3 text-left text-xs font-medium uppercase tracking-wider 
-            cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700
-            ${queryParams.sortField === field 
-                ? 'text-indigo-600 dark:text-indigo-400' 
-                : 'text-gray-500 dark:text-gray-400'}`;
+        return `px-6 py-4 text-left text-sm font-semibold cursor-pointer transition-all duration-300 hover:bg-[#1E242D] ${
+            queryParams.sortField === field 
+                ? 'text-[#3B82F6]' 
+                : 'text-[#9BA4B0]'
+        }`;
+    };
+
+    const deleteTask = (task) => {
+        if (confirm('Are you sure you want to delete this task?')) {
+            router.delete(route('task.destroy', task.id));
+        }
+    };
+
+    const getStatusColors = (status) => {
+        const colors = {
+            pending: { bg: 'bg-[#3B82F6]', text: 'text-white' },
+            in_progress: { bg: 'bg-[#F59E0B]', text: 'text-white' },
+            completed: { bg: 'bg-[#10B981]', text: 'text-white' }
+        };
+        return colors[status] || { bg: 'bg-[#6E7781]', text: 'text-white' };
+    };
+
+    const getPriorityColors = (priority) => {
+        const colors = {
+            low: { bg: 'bg-[#10B981]', text: 'text-white' },
+            medium: { bg: 'bg-[#F59E0B]', text: 'text-white' },
+            high: { bg: 'bg-[#EF4444]', text: 'text-white' }
+        };
+        return colors[priority] || { bg: 'bg-[#6E7781]', text: 'text-white' };
     };
 
     return (
@@ -78,13 +96,19 @@ export default function Index({ auth, tasks, projects = [], queryParams = null }
             user={auth.user}
             header={
                 <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                        Tasks
-                    </h2>
+                    <div>
+                        <h2 className="text-2xl font-bold text-[#E6EDF3]">
+                            Tasks
+                        </h2>
+                        <p className="text-[#9BA4B0] mt-1">Manage and track all your tasks</p>
+                    </div>
                     <Link
                         href={route('task.create')}
-                        className="px-4 py-2 text-sm text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="inline-flex items-center px-4 py-2 bg-[#3B82F6] text-white text-sm font-medium rounded-lg hover:bg-[#2563EB] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:ring-offset-2 focus:ring-offset-[#161B22] group"
                     >
+                        <svg className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
                         Add New Task
                     </Link>
                 </div>
@@ -92,42 +116,44 @@ export default function Index({ auth, tasks, projects = [], queryParams = null }
         >
             <Head title="Tasks" />
 
-            <div className="py-12">
+            <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="overflow-visible bg-white shadow-sm sm:rounded-lg dark:bg-gray-800">
-                        <div className="p-6 text-gray-900 dark:text-gray-100">
-                            <div className="mb-4 space-y-4">
+                    {/* Tasks Card */}
+                    <div className="bg-[#161B22] rounded-2xl border border-[#2A2F36] shadow-lg overflow-hidden">
+                        <div className="p-6">
+                            {/* Filters Section */}
+                            <div className="mb-6 space-y-4">
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                                     <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Search by Title
+                                        <label className="block text-sm font-semibold text-[#E6EDF3]">
+                                            Search Tasks
                                         </label>
-                                            <TextInput
-        className="w-full"
-        placeholder="Search tasks by name..."
-        onKeyPress={(e) => onKeyPress('name', e)}
-        defaultValue={queryParams.name}
-    />
+                                        <TextInput
+                                            className="w-full"
+                                            placeholder="Search tasks by name..."
+                                            onKeyPress={(e) => onKeyPress('name', e)}
+                                            defaultValue={queryParams.name}
+                                        />
                                     </div>
-                                       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Filter by Project
-        </label>
-        <SelectInput
-            className="w-full"
-            value={queryParams.project_id || ''}
-            onChange={(e) => searchFieldChange('project_id', e.target.value)}
-        >
-            <option value="">All Projects</option>
-            {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                    {project.name}
-                </option>
-            ))}
-        </SelectInput>
-    </div>
                                     <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        <label className="block text-sm font-semibold text-[#E6EDF3]">
+                                            Filter by Project
+                                        </label>
+                                        <SelectInput
+                                            className="w-full"
+                                            value={queryParams.project_id || ''}
+                                            onChange={(e) => searchFieldChange('project_id', e.target.value)}
+                                        >
+                                            <option value="">All Projects</option>
+                                            {projects.map((project) => (
+                                                <option key={project.id} value={project.id}>
+                                                    {project.name}
+                                                </option>
+                                            ))}
+                                        </SelectInput>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-semibold text-[#E6EDF3]">
                                             Filter by Priority
                                         </label>
                                         <SelectInput
@@ -143,12 +169,31 @@ export default function Index({ auth, tasks, projects = [], queryParams = null }
                                             ))}
                                         </SelectInput>
                                     </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-semibold text-[#E6EDF3]">
+                                            Filter by Status
+                                        </label>
+                                        <SelectInput
+                                            className="w-full"
+                                            value={queryParams.status || ''}
+                                            onChange={(e) => searchFieldChange('status', e.target.value)}
+                                        >
+                                            <option value="">All Status</option>
+                                            {Object.entries(PROJECT_STATUS_TEXT_MAP).map(([value, label]) => (
+                                                <option key={value} value={value}>
+                                                    {label}
+                                                </option>
+                                            ))}
+                                        </SelectInput>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="overflow-hidden border border-gray-200 rounded-lg dark:border-gray-700">
-                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                    <thead className="bg-gray-50 dark:bg-gray-800">
+                            {/* Table Container */}
+                            <div className="overflow-x-auto rounded-xl border border-[#2A2F36]">
+                                <table className="min-w-full divide-y divide-[#2A2F36]">
+                                    {/* Table Header */}
+                                    <thead className="bg-[#1E242D]">
                                         <tr>
                                             <th
                                                 scope="col"
@@ -166,7 +211,7 @@ export default function Index({ auth, tasks, projects = [], queryParams = null }
                                                 onClick={() => sortChanged('name')}
                                             >
                                                 <div className="flex items-center">
-                                                    Name
+                                                    Task Name
                                                     <SortIndicator field="name" />
                                                 </div>
                                             </th>
@@ -220,81 +265,128 @@ export default function Index({ auth, tasks, projects = [], queryParams = null }
                                                     <SortIndicator field="priority" />
                                                 </div>
                                             </th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-[#9BA4B0]">
                                                 Actions
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                                        {tasks.data.map((task) => (
-                                            <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                                    {task.id}
-                                                </td>
-                                                <td className="px-6 py-4 max-w-xs whitespace-normal break-words text-sm font-medium text-gray-900 dark:text-white">
-                                                    <Link 
-                                                        href={route('task.show', task.id)}
-                                                        className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                                                    >
-                                                        {task.name}
-                                                    </Link>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                                    {task.project?.name}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                                    {task.assigned_user?.name}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                                    {task.due_date}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span 
-                                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                            PROJECT_STATUS_CLASS_MAP[task.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                                        }`}
-                                                    >
-                                                        {PROJECT_STATUS_TEXT_MAP[task.status] || task.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span 
-                                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                            TASK_PRIORITY_CLASS_MAP[task.priority] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                                        }`}
-                                                    >
-                                                        {TASK_PRIORITY_TEXT_MAP[task.priority] || task.priority}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    <div className="space-x-2">
-                                                        <Link
-                                                            href={route('task.edit', task.id)}
-                                                            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+
+                                    {/* Table Body */}
+                                    <tbody className="divide-y divide-[#2A2F36] bg-[#161B22]">
+                                        {tasks.data.map((task) => {
+                                            const statusColors = getStatusColors(task.status);
+                                            const priorityColors = getPriorityColors(task.priority);
+                                            const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
+                                            
+                                            return (
+                                                <tr key={task.id} className="hover:bg-[#1E242D] transition-colors duration-300 group">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm font-medium text-[#6E7781]">
+                                                            #{task.id}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 max-w-xs whitespace-normal">
+                                                        <Link 
+                                                            href={route('task.show', task.id)}
+                                                            className="inline-flex items-center text-[#E6EDF3] font-medium hover:text-[#3B82F6] transition-colors duration-300 group-hover:translate-x-1 transition-transform duration-300"
                                                         >
-                                                            Edit
+                                                            <svg className="w-4 h-4 mr-2 text-[#6E7781] group-hover:text-[#3B82F6] transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                            </svg>
+                                                            {task.name}
                                                         </Link>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                if (confirm('Are you sure you want to delete this task?')) {
-                                                                    router.delete(route('task.destroy', task.id));
-                                                                }
-                                                            }}
-                                                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-[#E6EDF3]">
+                                                            {task.project?.name || 'No Project'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center">
+                                                            {task.assigned_user ? (
+                                                                <>
+                                                                    <div className="h-6 w-6 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981] flex items-center justify-center text-white text-xs font-bold mr-2">
+                                                                        {task.assigned_user.name.charAt(0).toUpperCase()}
+                                                                    </div>
+                                                                    <div className="text-sm text-[#E6EDF3]">
+                                                                        {task.assigned_user.name}
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-sm text-[#6E7781]">Unassigned</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className={`text-sm ${isOverdue ? 'text-[#EF4444] font-semibold' : 'text-[#E6EDF3]'}`}>
+                                                            {task.due_date}
+                                                            {isOverdue && (
+                                                                <span className="ml-1 text-xs bg-[#EF4444] text-white px-2 py-1 rounded-full">Overdue</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span 
+                                                            className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors.bg} ${statusColors.text}`}
                                                         >
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                            {PROJECT_STATUS_TEXT_MAP[task.status] || task.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span 
+                                                            className={`px-3 py-1 rounded-full text-xs font-medium ${priorityColors.bg} ${priorityColors.text}`}
+                                                        >
+                                                            {TASK_PRIORITY_TEXT_MAP[task.priority] || task.priority}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center space-x-3">
+                                                            <Link
+                                                                href={route('task.edit', task.id)}
+                                                                className="inline-flex items-center text-[#3B82F6] hover:text-[#2563EB] transition-colors duration-300 group"
+                                                            >
+                                                                <svg className="w-4 h-4 mr-1 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                </svg>
+                                                                Edit
+                                                            </Link>
+                                                            <button 
+                                                                onClick={() => deleteTask(task)}
+                                                                className="inline-flex items-center text-[#EF4444] hover:text-[#DC2626] transition-colors duration-300 group"
+                                                            >
+                                                                <svg className="w-4 h-4 mr-1 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+
+                                        {/* Empty State */}
                                         {tasks.data.length === 0 && (
                                             <tr>
-                                                <td 
-                                                    colSpan="8" 
-                                                    className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
-                                                >
-                                                    No tasks found. Create your first task!
+                                                <td colSpan="8" className="px-6 py-12 text-center">
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        <div className="w-16 h-16 bg-[#1E242D] rounded-full flex items-center justify-center mb-4">
+                                                            <svg className="w-8 h-8 text-[#6E7781]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                            </svg>
+                                                        </div>
+                                                        <h3 className="text-lg font-semibold text-[#E6EDF3] mb-2">No tasks found</h3>
+                                                        <p className="text-[#9BA4B0] mb-6">Get started by creating your first task</p>
+                                                        <Link
+                                                            href={route('task.create')}
+                                                            className="inline-flex items-center px-4 py-2 bg-[#3B82F6] text-white text-sm font-medium rounded-lg hover:bg-[#2563EB] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:ring-offset-2 focus:ring-offset-[#161B22]"
+                                                        >
+                                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                            </svg>
+                                                            Create Task
+                                                        </Link>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         )}
@@ -302,49 +394,32 @@ export default function Index({ auth, tasks, projects = [], queryParams = null }
                                 </table>
                             </div>
 
-                            {tasks.links && tasks.links.length > 3 && (
-                                <div className="mt-4">
-                                    <nav className="flex items-center justify-between" aria-label="Pagination">
-                                        <div className="hidden sm:block">
-                                            <p className="text-sm text-gray-700 dark:text-gray-300">
-                                                Showing <span className="font-medium">{tasks.from}</span> to{' '}
-                                                <span className="font-medium">{tasks.to}</span> of{' '}
-                                                <span className="font-medium">{tasks.total}</span> results
-                                            </p>
-                                        </div>
-                                        <div className="flex-1 flex justify-between sm:justify-end">
-                                            {tasks.links.map((link, index) => (
-                                                <button
-                                                    key={index}
-                                                    onClick={() => {
-                                                        if (link.url) {
-                                                            const url = new URL(link.url);
-                                                            const params = new URLSearchParams(url.search);
-                                                            
-                                                            // Preserve all query parameters
-                                                            Object.entries(queryParams).forEach(([key, value]) => {
-                                                                if (key !== 'page' && value) {
-                                                                    params.set(key, value);
-                                                                }
-                                                            });
-                                                            
-                                                            router.get(`${url.pathname}?${params.toString()}`);
-                                                        }
-                                                    }}
-                                                    className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${
-                                                        link.active
-                                                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-gray-700 dark:text-white'
-                                                            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
-                                                    } ${index === 0 ? 'rounded-l-md' : ''} ${
-                                                        index === tasks.links.length - 1 ? 'rounded-r-md' : ''
-                                                    } border`}
-                                                    dangerouslySetInnerHTML={{ __html: link.label }}
-                                                />
-                                            ))}
-                                        </div>
-                                    </nav>
+                            {/* Pagination */}
+                            {tasks.data.length > 0 && tasks.meta?.links && (
+                                <div className="mt-6">
+                                    <Pagination links={tasks.meta.links} />
                                 </div>
                             )}
+                        </div>
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-[#161B22] rounded-xl border border-[#2A2F36] p-4 text-center">
+                            <div className="text-2xl font-bold text-[#E6EDF3]">{tasks.meta?.total || 0}</div>
+                            <div className="text-[#9BA4B0] text-sm">Total Tasks</div>
+                        </div>
+                        <div className="bg-[#161B22] rounded-xl border border-[#2A2F36] p-4 text-center">
+                            <div className="text-2xl font-bold text-[#3B82F6]">{tasks.data.filter(t => t.status === 'pending').length}</div>
+                            <div className="text-[#9BA4B0] text-sm">Pending</div>
+                        </div>
+                        <div className="bg-[#161B22] rounded-xl border border-[#2A2F36] p-4 text-center">
+                            <div className="text-2xl font-bold text-[#F59E0B]">{tasks.data.filter(t => t.status === 'in_progress').length}</div>
+                            <div className="text-[#9BA4B0] text-sm">In Progress</div>
+                        </div>
+                        <div className="bg-[#161B22] rounded-xl border border-[#2A2F36] p-4 text-center">
+                            <div className="text-2xl font-bold text-[#10B981]">{tasks.data.filter(t => t.status === 'completed').length}</div>
+                            <div className="text-[#9BA4B0] text-sm">Completed</div>
                         </div>
                     </div>
                 </div>
