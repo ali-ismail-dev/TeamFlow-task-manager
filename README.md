@@ -1,59 +1,96 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# TeamFlow Task Manager
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> **Enterprise-Grade Multi-Tenant Task Management API**  
+> A highly scalable organizational tool built on a strict multi-tenant architecture, ensuring absolute data isolation across workspaces while delivering rapid, state-driven task workflows.
 
-## About Laravel
+[![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?logo=laravel)](https://laravel.com)
+[![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php)](https://www.php.net)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql)](https://www.mysql.com)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📋 Executive Overview
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+TeamFlow is architected to solve the complexities of cross-team collaboration within a SaaS environment. Rather than relying on simple CRUD operations, the system is built around a robust state machine that governs task lifecycles, permissions, and transitions.
 
-## Learning Laravel
+The core engineering focus of this platform is **data security through architecture**. By implementing global Eloquent scopes at the framework level, the API guarantees that users can only interact with data belonging to their authenticated workspace, entirely eliminating cross-tenant data leakage.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🏗️ System Topology
 
-## Laravel Sponsors
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                       React Client                          │
+│             (Kanban UI & Workspace Context)                 │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ (REST API / JSON)
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 Laravel API (PHP-FPM)                       │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ Tenant Scope │  │ RBAC / Gates │  │ State Engine │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ (Eloquent ORM)
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│                         MySQL 8.0                           │
+│   (Multi-tenant schema with enforced cascading deletes)     │
+└─────────────────────────────────────────────────────────────┘
+```
+🚀 Core Architectural Decisions
+1. Global Multi-Tenant Isolation
+Instead of manually appending where('workspace_id', $id) to queries, the platform utilizes Laravel Global Scopes injected during the authentication middleware lifecycle. This ensures that every database query automatically filters by the active tenant, making accidental cross-tenant data exposure mathematically impossible at the ORM level.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+2. Strict Role-Based Access Control (RBAC)
+Authorization is decoupled from the controller logic. Laravel Policies and Gates are implemented to verify permissions before any state change occurs. A user may have admin rights in Workspace A, but only viewer rights in Workspace B, with the backend dynamically resolving these permissions per request.
 
-### Premium Partners
+3. Enum-Backed State Machines
+Task statuses (e.g., Backlog, In_Progress, In_Review, Completed) are not loose strings. They are strictly typed using PHP 8.1+ Enums and governed by a state machine pattern. This prevents illegal transitions—ensuring a task cannot move from Backlog directly to Completed without passing through the required workflow gates.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+🛠️ Local Development & Setup
+The environment is containerized using Laravel Sail, providing a zero-config setup for the database and backend services.
 
-## Contributing
+Prerequisites
+Docker Desktop
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Node.js (v18+)
 
-## Code of Conduct
+Composer
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Installation
+```bash
+# 1. Clone the repository
+git clone [https://github.com/ali-ismail-dev/teamflow-task-manager.git](https://github.com/ali-ismail-dev/teamflow-task-manager.git)
+cd teamflow-task-manager
 
-## Security Vulnerabilities
+# 2. Install dependencies
+composer install
+npm install
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# 3. Configure environment
+cp .env.example .env
+php artisan key:generate
 
-## License
+# 4. Boot infrastructure
+./vendor/bin/sail up -d
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# 5. Run migrations and seed multi-tenant dummy data
+./vendor/bin/sail artisan migrate --seed
+
+# 6. Start the frontend build tool
+npm run dev
+```
+🧪 Testing & Validation
+The test suite heavily focuses on authorization and tenant boundary validation to ensure the SaaS architecture remains airtight.
+```bash
+# Run all unit and feature tests
+./vendor/bin/sail artisan test
+
+# Run tests specifically checking tenant isolation boundaries
+./vendor/bin/sail artisan test --filter=TenantIsolationTest
+```
+Architected and maintained by Ali Ismail.
